@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
 
 
         // Fetch
-        const uint16_t opcode = ((uint16_t)chip8.heap[chip8.pc] << 8u) | (uint16_t)chip8.heap[chip8.pc + 1];
+        const uint16_t opcode = ((uint16_t)chip8.heap[chip8.pc & 0x0FFFu] << 8u) | (uint16_t)chip8.heap[(chip8.pc + 1) & 0x0FFFu];
         chip8.pc += 2;
         //Decode and Execute
         switch (opcode >> 12u) {
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
                         memset(windowSurface->pixels, 0, windowSurface->w * windowSurface->h * windowSurface->format->BytesPerPixel);
                     break;
                     case 0xeeu: //RET
-                        chip8.pc = chip8.stack[--chip8.sp];
+                        chip8.pc = chip8.stack[--chip8.sp & 0x0Fu];
                     break;
                     default:
                         fprintf(stderr, "Unknown Instruction 0x%x\n", opcode);
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
             break;
 
             case 0x2u: // CALL
-                chip8.stack[chip8.sp++] = chip8.pc;
+                chip8.stack[chip8.sp++ & 0x0Fu] = chip8.pc;
                 chip8.pc = opcode & 0x0FFFu;
             break;
 
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
                 for (uint8_t row = 0; row < (uint8_t)(opcode & 0x000F); row++) {
                     for (uint8_t column = 0; column < 8; column++) {
                         uint32_t* screenPixel = (uint32_t*)windowSurface->pixels + ((y + row) * windowSurface->w) + (x + column);
-                        bool spritePixel = (chip8.heap[chip8.i + row]) & (0x80u >> column);
+                        bool spritePixel = (chip8.heap[(chip8.i + row) & 0x0FFFu]) & (0x80u >> column);
                         if(spritePixel) {
                             if(*screenPixel) {
                                 chip8.v[0xFu] = 1u;
@@ -340,19 +340,19 @@ int main(int argc, char *argv[]) {
                     break;
                     case 0x33u: {
                         uint8_t value = chip8.v[(opcode >> 8u) & 0x0Fu];
-                        chip8.heap[chip8.i + 2] = value % 10;
-                        chip8.heap[chip8.i + 1] = (value /= 10u) % 10;
-                        chip8.heap[chip8.i] = (value /= 10u) % 10;
+                        chip8.heap[(chip8.i + 2) & 0x0FFFu] = value % 10;
+                        chip8.heap[(chip8.i + 1) & 0x0FFFu] = (value /= 10u) % 10;
+                        chip8.heap[(chip8.i) & 0x0FFFu] = (value /= 10u) % 10;
                     }  
                     break;
                     case 0x55:
                         for (uint8_t i = 0; i <= ((opcode >> 8u) & 0x0Fu); i++) {
-                            chip8.heap[chip8.i + i] = chip8.v[i];
+                            chip8.heap[(chip8.i + i) & 0x0FFFu] = chip8.v[i];
                         }
                     break;
                     case 0x65:
                         for (uint8_t i = 0; i <= ((opcode >> 8u) & 0x0Fu); i++) {
-                            chip8.v[i] = chip8.heap[chip8.i + i];
+                            chip8.v[i] = chip8.heap[(chip8.i + i) & 0x0FFFu];
                         }
                     break;
                     default:
